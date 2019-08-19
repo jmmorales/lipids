@@ -41,45 +41,45 @@ data {
   int<lower=1> N;                 // total number of observations 
   int Y[N];                       // response variable 
   int<lower=1> K;                 // number of population-level effects (2)
-  int<lower=1> J;                 // num of groups (bird gens)
-  int<lower=1> L;                 // num group level predictors
+  int<lower=1> J;                 // number of groups (bird genera)
+  int<lower=1> L;                 // number group level predictors
   int<lower=1,upper=J> jj[N];     // group id 
-  matrix[N, K] X;                 // obs-level design matrix 
+  matrix[N, K] X;                 // observation-level design matrix 
   matrix[J,L] TT;                 // group-level traits
   matrix[J,J] C;                  // phylogenetic correlation matrix
   vector[J] ones;                 // vector on 1s
   int<lower=1> N_1;               // num sites
-  int<lower=1> M_1;               // one site r.e.
-  int<lower=1> M_2;               // one plant r.e.
+  int<lower=1> M_1;               // one site random effects
+  int<lower=1> M_2;               // one plant random effects
   int<lower=1,upper=N_1> J_1[N];  // ids for sites
   int<lower=1> J_2[N];            // ids for plants
-  int<lower=1> N_2;               // num plant spp
+  int<lower=1> N_2;               // num plant genera
   matrix[N_2, N_2] DistP;         // cophenetic distance among plants
   matrix[N_1,N_1] Dmat;           // sites distance matrix
 }
 
 parameters {
-  corr_matrix[K] Omega;
-  vector<lower=0>[K] tau;
-  vector[J * K] beta;
-  real<lower=0,upper=1> rho;
-  vector[L * K] z;
+  corr_matrix[K] Omega;       // correlation matrix for regression parameters
+  vector<lower=0>[K] tau;     // variance for parameters
+  vector[J * K] beta;         // regression coefficients
+  real<lower=0,upper=1> rho;  // phylogenetic effect
+  vector[L * K] z;            // coefficients for trait effects on regression pars
   vector[N_1] r_1_1;          //  site-level effects
-  vector[N_2] r_1_2;          // plqnt-level effects
+  vector[N_2] r_1_2;          //  plant-level effects
   real<lower=0> etasq;
   real<lower=0> rhosq;
   real<lower=0> etasqp;
   real<lower=0> rhosqp;
   real<lower=0> delta;
   real<lower=0> deltap;
-  real<lower=0> phi;
+  real<lower=0> phi;          // overdispersion
 }
 
 transformed parameters { 
   matrix[K, K] Sigma = quad_form_diag(Omega, tau);
   matrix[J+J, J+J] S = kronecker(Sigma, rho * C + (1-rho) * diag_matrix(ones));
   matrix[L, K] Z = to_matrix(z, L, K);
-  vector[J * K] m = to_vector(TT * Z);
+  vector[J * K] m = to_vector(TT * Z); 
   matrix[J, K] b_m = to_matrix(beta, J, K);
 } 
 
