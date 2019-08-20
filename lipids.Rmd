@@ -1,0 +1,67 @@
+---
+title: "lipids"
+author: "jmm"
+date: "8/19/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Analysis of bird visits to plants 
+
+We analyzed the data following the Bayesian hierarchical approach developed by Ovaskainen el al. (2017)[https://onlinelibrary.wiley.com/doi/abs/10.1111/ele.12757]. We modelled the number of visits from different bird genera to the focal plant genera at each site using a Negative Binomial distribution where the expected number of visits was a linear function of the lipid content of the fruits from each plant genera (log link):
+
+$$
+y_{i,j,k} \sim \text{NB} \left(\mu_{i,j,k}, \phi  \right)
+\log{\mu_{i,j,k}} = \beta_0 + \beta_1 \times \lipids_{j,k}
+$$
+
+
+
+Thus, for each bird genus we obtained an intercept and a slope for the regression on the fruit lipid values of focal plant genera. We modelled these intercept and slopes as a function of two traits (1) proportion of fruits in their diet and (2) log-transformed body size. To control for phylogenetic relationship in the responses of the species to lipid content, we included in the model phylogenetic relationships among the bird genera. As random effects, we included the site and the plant genera. We assumed for both of these levels a Gaussian decaying covariance function, where the distance matrix for sites was based on Euclidian distance and the distance matrix for plants was based on their phylogenetic distance. The over-dispersion parameter of the Negative Binomial was estimated as a free parameter. We obtained concensus trees for the bird and plant genera phylogenies from BirdTree.org (Jetz et al. 2012) and Phylomatic version 3 (Webb and Donghue 2004, Silk et al. 2018) respectively
+
+
+Load the phylogenetic data:
+
+```{r}
+library(ape)
+filo <- read.nexus("data/output_tree_sep_2018_consensus_only.nex")
+filop <- read.nexus("data/Tree_with_second_taxa_from_Tomas_geneious_nexus_25Sep2018.nex")
+
+```
+
+Get a correlation matrix from the bird phylogenetic tree, and sort birds and re-arrange phylogenetic correlation to match the order of bird ids in the data
+
+```{r}
+CC = vcv(filo, corr = TRUE)
+tmp <- dimnames(CC)
+ids <- as.numeric(as.factor(tmp[[1]]))
+
+C <- matrix(NA, ncol(CC), ncol(CC))
+for(i in 1:ncol(CC)){
+  for(j in 1:ncol(CC)){
+    C[ids[i], ids[j]] <- CC[i,j]
+  }
+}
+```
+
+# cophenetic distance among plants
+coP <- cophenetic(filop)
+
+tmp <- dimnames(coP)
+idsp <- as.numeric(as.factor(tmp[[1]]))
+
+DistP <- matrix(NA, ncol(coP), ncol(coP))
+for(i in 1:ncol(coP)){
+  for(j in 1:ncol(coP)){
+    DistP[idsp[i],idsp[j]] <- coP[i,j]
+  }
+}
+
+
+Load the visitation data
+```{r}
+datos <- read.csv("up_data_genus_ll.csv", header = TRUE, nrows = 2378)
+```
