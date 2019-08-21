@@ -11,16 +11,28 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Analysis of bird visits to plants 
 
-We analyzed the data following the Bayesian hierarchical approach developed by Ovaskainen el al. (2017)[https://onlinelibrary.wiley.com/doi/abs/10.1111/ele.12757]. We modelled the number of visits from different bird genera to the focal plant genera at each site using a Negative Binomial distribution where the expected number of visits was a linear function of the lipid content of the fruits from each plant genera (log link):
+We analyzed the data following the Bayesian hierarchical approach developed by Ovaskainen el al. [2017](https://onlinelibrary.wiley.com/doi/abs/10.1111/ele.12757). We modelled the number of visits from different bird genera to the focal plant genera at each site using a Negative Binomial distribution where the expected number of visits was a linear function of the lipid content of the fruits from each plant genera (log link), and with plant and site random effects:
 
 $$
-y_{i,j,k} \sim \text{NB} \left(\mu_{i,j,k}, \phi  \right)
-\log{\mu_{i,j,k}} = \beta_0 + \beta_1 \times \lipids_{j,k}
+\begin{aligned}
+& y_{i,j,k} \sim \text{NB} \left(\mu_{i,j,k}, \phi  \right) \\
+& \log{\mu_{i,j,k}} = \beta_{0,i} + \beta_{1,i} \times lipids_{j} + \epsilon_j + \nu_k \\
+\end{aligned}
 $$
 
+where $y_{i,j,k}$ is the observed number of visits of bird genus $i$ to plant genus $j$ on site $k$, and $\epsilon_j$ and $\nu_k$ are plant and site random effects.
 
+We modelled these intercept and slopes as a function of two traits (1) proportion of fruits in their diet and (2) log-transformed body size. To control for phylogenetic relationship in the responses of the birds to lipid content, we included in the model phylogenetic relationships among the bird genera. 
 
-Thus, for each bird genus we obtained an intercept and a slope for the regression on the fruit lipid values of focal plant genera. We modelled these intercept and slopes as a function of two traits (1) proportion of fruits in their diet and (2) log-transformed body size. To control for phylogenetic relationship in the responses of the species to lipid content, we included in the model phylogenetic relationships among the bird genera. As random effects, we included the site and the plant genera. We assumed for both of these levels a Gaussian decaying covariance function, where the distance matrix for sites was based on Euclidian distance and the distance matrix for plants was based on their phylogenetic distance. The over-dispersion parameter of the Negative Binomial was estimated as a free parameter. We obtained concensus trees for the bird and plant genera phylogenies from BirdTree.org (Jetz et al. 2012) and Phylomatic version 3 (Webb and Donghue 2004, Silk et al. 2018) respectively
+The genus-specific parameters are combined into a matrix $\mathbf{\Theta}$) that has as many rows as genera and as many columns as regression parameters (two in our case). To determine the way in which genus respond to environmental factors depend on their traits and phylogenetic relationships, we vectorize the matrix $\mathbf{\Theta}$ to  $\mathbf{\theta} = vec(\mathbf{\Theta})$, and model it using a multivariate normal distribution as
+
+$$
+\theta \sim \text{N} \left(\mathbf{m}, \Sigma \otimes \left[ \rho \mathbf{C} + \left(1 - \rho \right) \mathbf{I}_{n_g} \right] \right)
+$$
+
+here the vector $\mathbf{m} = \text{vec}(\mathbf{M})$ is the vectorized version of the matrix $\mathbf{M}$ that holds the expected parameters for each genus based on species traits. That is, $\mathbf{M} = \mathbf{T} \mathbf{Z}$, where $\mathbf{T}$ is the design matrix of bird traits and $\mathbf{Z}$ is a matrix of coefficients. The first column of $\mathbf{T}$ is made of ones to allow for variation independent of traits. The second and third columns contain scaled frugivory and log body mass respectively. The two-by-two variance–covariance matrix $\Sigma$ above models the genus-specific deviations around the expectation based on species traits, and $\otimes$ is the Kronecker (outer) product. The matrix $\mathbf{C}$ is a phylogenetic correlation matrix among bird genera derived from a concensus tree obtained from [BirdTree.org](http://birdtree.org/). The matrix $\mathbf{I}_{n_g}$ is the identity matrix of dimension equal to the number of bird genera $n_g$, and the parameter $0 \leq \rho \leq 1$ measures the strength of the phylogenetic signal.
+
+As random effects, we included the site and the plant genera. We assumed for both of these levels a Gaussian decaying covariance function, where the distance matrix for sites was based on Euclidian distance and the distance matrix for plants was based on their phylogenetic distance. The over-dispersion parameter of the Negative Binomial was estimated as a free parameter. 
 
 
 Load the phylogenetic data:
@@ -63,5 +75,5 @@ for(i in 1:ncol(coP)){
 
 Load the visitation data
 ```{r}
-datos <- read.csv("up_data_genus_ll.csv", header = TRUE, nrows = 2378)
+datos <- read.csv("data/up_data_genus_ll.csv", header = TRUE, nrows = 2378)
 ```
