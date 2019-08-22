@@ -11,6 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Analysis of bird visits to plants 
 
+### Model structure
+
 We analyzed the data following the Bayesian hierarchical approach developed by Ovaskainen el al. [2017](https://onlinelibrary.wiley.com/doi/abs/10.1111/ele.12757). We modelled the number of visits from different bird genera to the focal plant genera at each site using a Negative Binomial distribution where the expected number of visits was a linear function of the lipid content of the fruits from each plant genera (log link), and with plant and site random effects:
 
 $$
@@ -24,7 +26,7 @@ where $y_{i,j,k}$ is the observed number of visits of bird genus $i$ to plant ge
 
 We modelled these intercept and slopes as a function of two traits (1) proportion of fruits in their diet and (2) log-transformed body size. To control for phylogenetic relationship in the responses of the birds to lipid content, we included in the model phylogenetic relationships among the bird genera. 
 
-The genus-specific parameters are combined into a matrix $\mathbf{\Theta}$) that has as many rows as genera and as many columns as regression parameters (two in our case). To determine the way in which genus respond to environmental factors depend on their traits and phylogenetic relationships, we vectorize the matrix $\mathbf{\Theta}$ to  $\mathbf{\theta} = vec(\mathbf{\Theta})$, and model it using a multivariate normal distribution as
+The genus-specific parameters are combined into a matrix $\mathbf{\Theta}$ that has as many rows as genera and as many columns as regression parameters (two in our case). To determine the way in which genus respond to environmental factors depend on their traits and phylogenetic relationships, we vectorize the matrix $\mathbf{\Theta}$ to  $\mathbf{\theta} = \text{vec}(\mathbf{\Theta})$, and model it using a multivariate normal distribution as
 
 $$
 \theta \sim \text{N} \left(\mathbf{m}, \Sigma \otimes \left[ \rho \mathbf{C} + \left(1 - \rho \right) \mathbf{I}_{n_g} \right] \right)
@@ -32,10 +34,17 @@ $$
 
 here the vector $\mathbf{m} = \text{vec}(\mathbf{M})$ is the vectorized version of the matrix $\mathbf{M}$ that holds the expected parameters for each genus based on species traits. That is, $\mathbf{M} = \mathbf{T} \mathbf{Z}$, where $\mathbf{T}$ is the design matrix of bird traits and $\mathbf{Z}$ is a matrix of coefficients. The first column of $\mathbf{T}$ is made of ones to allow for variation independent of traits. The second and third columns contain scaled frugivory and log body mass respectively. The two-by-two variance–covariance matrix $\Sigma$ above models the genus-specific deviations around the expectation based on species traits, and $\otimes$ is the Kronecker (outer) product. The matrix $\mathbf{C}$ is a phylogenetic correlation matrix among bird genera derived from a concensus tree obtained from [BirdTree.org](http://birdtree.org/). The matrix $\mathbf{I}_{n_g}$ is the identity matrix of dimension equal to the number of bird genera $n_g$, and the parameter $0 \leq \rho \leq 1$ measures the strength of the phylogenetic signal.
 
-As random effects, we included the site and the plant genera. We assumed for both of these levels a Gaussian decaying covariance function, where the distance matrix for sites was based on Euclidian distance and the distance matrix for plants was based on their phylogenetic distance. The over-dispersion parameter of the Negative Binomial was estimated as a free parameter. 
+Site and plant random effects were modelled with multivariate normals with mean set to zero and with the off diagonal elements of the covariance matrix given by $\eta^2 \exp \left( - \gamma^2 D_{ij}^{2}\right) + \delta_{ij}$ where $D_{ij}$ is the distance between site (or plant) $i$ and $j$ (Euclidian distance among sites in thousands of km, and cophenetic distance among plants divided by 100). Parameter $\delta$ is equal to zero whenever $i \neq j$ so that the diagonal elements of the covariance matrix are given by $\eta^2 + \delta$.
 
+The over-dispersion parameter of the Negative Binomial ($\phi$) was estimated as a free parameter. 
 
-Load the phylogenetic data:
+### Priors
+
+All our priors can be considered weakly informative in the sense that they cosntrain parameter values to sensible magnitudes. Priors for the regression coefficients between traits and expected values of bird intercept and slopes (the coefficients for $\mathbf{T} \mathbf{Z}$) were Normal(0,1). For the overdispersion parameter of the Negative Binomial distribution we used a Cauchy(0, 3). Priors for $\rho$ were Beta(2, 2) and for $\Sigma$ we used a LKJ(2) prior on the correlation and a Student(3,0,10) on the variances (see Stan Development Team. 2018). For the random effect parameters we used Exponential(2) for $\eta^2$, Exponential(0.5) for $\gamma^2$, and Normal(0, 2.5) for $\delta$.
+    
+### Fitting the model to data
+
+First we load the phylogenetic data:
 
 ```{r}
 library(ape)
@@ -44,7 +53,7 @@ filop <- read.nexus("data/Tree_with_second_taxa_from_Tomas_geneious_nexus_25Sep2
 
 ```
 
-Get a correlation matrix from the bird phylogenetic tree, and sort birds and re-arrange phylogenetic correlation to match the order of bird ids in the data
+Then get a correlation matrix from the bird phylogenetic tree, and sort birds and re-arrange phylogenetic correlation to match the order of bird ids in the data
 
 ```{r}
 CC = vcv(filo, corr = TRUE)
@@ -59,7 +68,9 @@ for(i in 1:ncol(CC)){
 }
 ```
 
-# cophenetic distance among plants
+Calculate the cophenetic distance among plants and re-arrange the matrix to match the order of plant ids in the data
+
+```{r}
 coP <- cophenetic(filop)
 
 tmp <- dimnames(coP)
@@ -71,9 +82,96 @@ for(i in 1:ncol(coP)){
     DistP[idsp[i],idsp[j]] <- coP[i,j]
   }
 }
+```
 
-
-Load the visitation data
+Load the visitation data and calculate distance among sites
 ```{r}
 datos <- read.csv("data/up_data_genus_ll.csv", header = TRUE, nrows = 2378)
+
+xy = unique(data.frame(site = datos$site, long=datos$lon,lat=datos$lat))
+rownames(xy) = xy$site
+
+library(geosphere)
+Dmat <- distm(cbind(xy$long, xy$lat), fun = distHaversine)/1000000
+```
+
+Now prepare the variables for the analysis
+
+```{r}
+visits <- (datos$visits)
+lipid  <- scale(datos$lipid)
+site   <- datos$site
+spp    <- datos$phylo # bird genus
+sp     <- sort(unique(spp))
+
+pspp <- datos$Phylo_name # plant genus
+psp  <- unique(pspp)
+
+np  <- 2    # number of regression parameters
+nt  <- 2    # number of traits
+npp <- 1
+ntp <- 1
+
+ns     <- length(sp)  # number of bird genus
+ns_p   <- length(psp) # number of plant genus
+nsites <- length(unique(site))
+
+# traits for birds
+TT <- matrix(1, nrow = ns, ncol = nt + 1)
+for(i in 1: ns){
+  TT[i, 2] <- datos$Fruit_Diet[spp==sp[i]][1]
+  TT[i, 3] <- log(datos$BodyMass[spp==sp[i]][1])
+}
+fd <- TT[,2] # save original values for plots
+bs <- TT[,3]
+
+TT[, 2] <- scale(TT[, 2])
+TT[, 3] <- scale(TT[, 3])
+
+
+N <- length(visits)
+Y <- visits
+K <- np
+X <- matrix(c(rep(1, N), lipid), N, K ) 
+
+jj <- as.numeric(as.factor(datos$phylo))
+J  <- max(jj)
+
+J_1 <- as.numeric(as.factor(datos$site))
+J_2 <- as.numeric(as.factor(datos$Phylo_name))
+N_1 <- max(J_1)
+N_2 <- max(J_2)
+L   <- ncol(TT)
+ones <- numeric(J) + 1
+```
+
+Fit the model to data using Stan. See (pg_nb_pp.stan)[https://github.com/jmmorales/lipids/blob/master/pg_nb_pp.stan]
+
+```{r, eval=FALSE}
+library(rstan)
+Sys.setenv(LOCAL_CPPFLAGS = '-march=native')
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+
+pr_dat <- list(N = N,
+               Y = Y,
+               K = K,
+               X = X,
+               jj = jj,
+               J = J,
+               L = L,
+               TT = TT,
+               C = C,
+               ones = ones,
+               M_1 = 1,
+               M_2 = 1,
+               Dmat = Dmat,
+               J_1 = J_1,
+               J_2 = J_2,
+               N_1 = N_1,
+               N_2 = N_2,
+               DistP = DistP/100)
+
+fit <- stan(file = 'prspgpp.stan', data = pr_dat,
+            iter = 10000, thin = 10, chains = 3)
 ```
