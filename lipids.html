@@ -250,26 +250,88 @@ for(i in 1:ncol(coP)){
     DistP[idsp[i],idsp[j]] &lt;- coP[i,j]
   }
 }</code></pre>
-<p>Load the visitation data</p>
-<pre class="r"><code>datos &lt;- read.csv(&quot;data/up_data_genus_ll.csv&quot;, header = TRUE, nrows = 2378)</code></pre>
-<p>xy = unique(data.frame(site = datos<span class="math inline">\(site, long=datos\)</span>lon,lat=datos<span class="math inline">\(lat)) rownames(xy) = xy\)</span>site</p>
-<p>library(geosphere) Dmat &lt;- distm(cbind(xy<span class="math inline">\(long, xy\)</span>lat), fun = distHaversine)/1000000</p>
-<p>visits &lt;- (datos<span class="math inline">\(visits) lipid &lt;- scale(datos\)</span>lipid) site &lt;- datos<span class="math inline">\(site #effort &lt;- datos\)</span>sampling_effort_hours spp &lt;- datos$phylo # bird genus sp &lt;- sort(unique(spp))</p>
-<p>pspp &lt;- datos$Phylo_name # plant genus psp &lt;- unique(pspp)</p>
-<p>np &lt;- 2 # number of parameters nt &lt;- 2 # number of traits npp &lt;- 1 ntp &lt;- 1</p>
-<p>ns &lt;- length(sp) # number of bird genus ns_p &lt;- length(psp) # number of plant genus nsites &lt;- length(unique(site)) nobs &lt;- length(site)</p>
+<p>Load the visitation data and calculate distance among sites</p>
+<pre class="r"><code>datos &lt;- read.csv(&quot;data/up_data_genus_ll.csv&quot;, header = TRUE, nrows = 2378)
+
+xy = unique(data.frame(site = datos$site, long=datos$lon,lat=datos$lat))
+rownames(xy) = xy$site
+
+library(geosphere)
+Dmat &lt;- distm(cbind(xy$long, xy$lat), fun = distHaversine)/1000000</code></pre>
+<p>Now prepare the variables for the analysis</p>
+<pre class="r"><code>visits &lt;- (datos$visits)
+lipid  &lt;- scale(datos$lipid)
+site   &lt;- datos$site
+spp    &lt;- datos$phylo # bird genus
+sp     &lt;- sort(unique(spp))
+
+pspp &lt;- datos$Phylo_name # plant genus
+psp  &lt;- unique(pspp)
+
+np  &lt;- 2    # number of regression parameters
+nt  &lt;- 2    # number of traits
+npp &lt;- 1
+ntp &lt;- 1
+
+ns     &lt;- length(sp)  # number of bird genus
+ns_p   &lt;- length(psp) # number of plant genus
+nsites &lt;- length(unique(site))
+
+# traits for birds
+TT &lt;- matrix(1, nrow = ns, ncol = nt + 1)
+for(i in 1: ns){
+  TT[i, 2] &lt;- datos$Fruit_Diet[spp==sp[i]][1]
+  TT[i, 3] &lt;- log(datos$BodyMass[spp==sp[i]][1])
+}
+fd &lt;- TT[,2] # save original values for plots
+bs &lt;- TT[,3]
+
+TT[, 2] &lt;- scale(TT[, 2])
+TT[, 3] &lt;- scale(TT[, 3])
+
+
+N &lt;- length(visits)
+Y &lt;- visits
+K &lt;- np
+X &lt;- matrix(c(rep(1, N), lipid), N, K ) 
+
+jj &lt;- as.numeric(as.factor(datos$phylo))
+J  &lt;- max(jj)
+
+J_1 &lt;- as.numeric(as.factor(datos$site))
+J_2 &lt;- as.numeric(as.factor(datos$Phylo_name))
+N_1 &lt;- max(J_1)
+N_2 &lt;- max(J_2)
+L   &lt;- ncol(TT)
+ones &lt;- numeric(J) + 1</code></pre>
+<p>Fit the model to data using Stan. See (pg_nb_pp.stan)[<a href="https://github.com/jmmorales/lipids/blob/master/pg_nb_pp.stan" class="uri">https://github.com/jmmorales/lipids/blob/master/pg_nb_pp.stan</a>]</p>
+<pre class="r"><code>library(rstan)
+Sys.setenv(LOCAL_CPPFLAGS = '-march=native')
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+
+pr_dat &lt;- list(N = N,
+               Y = Y,
+               K = K,
+               X = X,
+               jj = jj,
+               J = J,
+               L = L,
+               TT = TT,
+               C = C,
+               ones = ones,
+               M_1 = 1,
+               M_2 = 1,
+               Dmat = Dmat,
+               J_1 = J_1,
+               J_2 = J_2,
+               N_1 = N_1,
+               N_2 = N_2,
+               DistP = DistP/100)
+
+fit &lt;- stan(file = 'prspgpp.stan', data = pr_dat,
+            iter = 10000, thin = 10, chains = 3)</code></pre>
 </div>
-</div>
-<div id="traits-for-birds" class="section level1">
-<h1>traits for birds</h1>
-<p>TT &lt;- matrix(1, nrow = ns, ncol = nt + 1) for(i in 1: ns){ TT[i, 2] &lt;- datos<span class="math inline">\(Fruit_Diet[spp==sp[i]][1]  TT[i, 3] &lt;- log(datos\)</span>BodyMass[spp==sp[i]][1]) } fd &lt;- TT[,2] bs &lt;- TT[,3]</p>
-<p>TT[, 2] &lt;- scale(TT[, 2]) TT[, 3] &lt;- scale(TT[, 3])</p>
-<p>N &lt;- length(visits) Y &lt;- visits K &lt;- np X &lt;- matrix(c(rep(1, N), lipid), N, K )</p>
-<p>jj &lt;- as.numeric(as.factor(datos$phylo)) J &lt;- max(jj)</p>
-<p>J_1 &lt;- as.numeric(as.factor(datos<span class="math inline">\(site)) J_2 &lt;- as.numeric(as.factor(datos\)</span>Phylo_name)) N_1 &lt;- max(J_1) N_2 &lt;- max(J_2) L &lt;- ncol(TT) ones &lt;- numeric(J) + 1 #unos &lt;- numeric(N) + 1</p>
-<p>library(rstan) Sys.setenv(LOCAL_CPPFLAGS = ‘-march=native’) rstan_options(auto_write = TRUE) options(mc.cores = parallel::detectCores())</p>
-<p>pr_dat &lt;- list(N = N, Y = Y, K = K, X = X, jj = jj, J = J, L = L, TT = TT, C = C, ones = ones, M_1 = 1, M_2 = 1, Dmat = Dmat, J_1 = J_1, J_2 = J_2, N_1 = N_1, N_2 = N_2, DistP = DistP/100)</p>
-<p>fit &lt;- stan(file = ‘prspgpp.stan’, data = pr_dat, iter = 10000, thin = 10, chains = 3)</p>
 </div>
 
 
