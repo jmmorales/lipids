@@ -175,3 +175,37 @@ pr_dat <- list(N = N,
 fit <- stan(file = 'prspgpp.stan', data = pr_dat,
             iter = 10000, thin = 10, chains = 3)
 ```
+
+### Plots and other stuff
+
+```{r, echo=FALSE}
+# load results
+load("~/Downloads/fit_nb.RData")
+fit = fit_nb
+rm(fit_nb)
+```
+
+Check convergence and number of effective MCMC samples
+```{r}
+library(rstan)
+fit_summary <- summary(fit)$summary
+
+# check R_hat
+hist(fit_summary[,10], 100)
+# check n_eff
+hist(fit_summary[,9], 100)
+
+
+
+```
+Leave one out CV
+```{r}
+library(loo)
+# Extract pointwise log-likelihood and compute LOO
+log_lik <- extract_log_lik(fit, merge_chains = FALSE)
+
+r_eff <- relative_eff(exp(log_lik)) 
+
+loo_1 <- loo(log_lik, r_eff = r_eff, cores = 2)
+print(loo_1)
+```
