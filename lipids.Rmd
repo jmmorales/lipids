@@ -34,13 +34,13 @@ $$
 
 here the vector $\mathbf{m} = \text{vec}(\mathbf{M})$ is the vectorized version of the matrix $\mathbf{M}$ that holds the expected parameters for each genus based on species traits. That is, $\mathbf{M} = \mathbf{T} \mathbf{Z}$, where $\mathbf{T}$ is the design matrix of bird traits and $\mathbf{Z}$ is a matrix of coefficients. The first column of $\mathbf{T}$ is made of ones to allow for variation independent of traits. The second and third columns contain scaled frugivory and log body mass respectively. The two-by-two variance–covariance matrix $\Sigma$ above models the genus-specific deviations around the expectation based on species traits, and $\otimes$ is the Kronecker (outer) product. The matrix $\mathbf{C}$ is a phylogenetic correlation matrix among bird genera derived from a concensus tree obtained from [BirdTree.org](http://birdtree.org/). The matrix $\mathbf{I}_{n_g}$ is the identity matrix of dimension equal to the number of bird genera $n_g$, and the parameter $0 \leq \rho \leq 1$ measures the strength of the phylogenetic signal.
 
-Site and plant random effects were modelled with multivariate normals with mean set to zero and with the off diagonal elements of the covariance matrix given by $\eta^2 \exp \left( - \gamma^2 D_{ij}^{2}\right) + \delta_{ij}$ where $D_{ij}$ is the distance between site (or plant) $i$ and $j$ (Euclidian distance among sites in thousands of km, and cophenetic distance among plants divided by 100). Parameter $\delta$ is equal to zero whenever $i \neq j$ so that the diagonal elements of the covariance matrix are given by $\eta^2 + \delta$.
+Site and plant random effects were modelled with multivariate normals with mean set to zero and with the off diagonal elements of the covariance matrix given by $\eta^2 \exp \left( - \gamma^2 D_{ij}^{2}\right) + \delta_{ij} \sigma^2$ where $D_{ij}$ is the distance between site (or plant) $i$ and $j$ (Euclidian distance among sites in thousands of km, and cophenetic distance among plants divided by 100). Parameter $\delta$ is equal to zero whenever $i \neq j$ so that the diagonal elements of the covariance matrix are given by $\eta^2 + \sigma^2$.
 
 The over-dispersion parameter of the Negative Binomial ($\phi$) was estimated as a free parameter. 
 
 ### Priors
 
-All our priors can be considered weakly informative in the sense that they cosntrain parameter values to sensible magnitudes. Priors for the regression coefficients between traits and expected values of bird intercept and slopes (the coefficients for $\mathbf{T} \mathbf{Z}$) were Normal(0,1). For the overdispersion parameter of the Negative Binomial distribution we used a Cauchy(0, 3). Priors for $\rho$ were Beta(2, 2) and for $\Sigma$ we used a LKJ(2) prior on the correlation and a Student(3,0,10) on the variances (see Stan Development Team. 2018). For the random effect parameters we used Exponential(2) for $\eta^2$, Exponential(0.5) for $\gamma^2$, and Normal(0, 2.5) for $\delta$.
+All our priors can be considered weakly informative in the sense that they cosntrain parameter values to sensible magnitudes. Priors for the regression coefficients between traits and expected values of bird intercept and slopes (the coefficients for $\mathbf{T} \mathbf{Z}$) were Normal(0,1). For the overdispersion parameter of the Negative Binomial distribution we used a Cauchy(0, 3). Priors for $\rho$ were Beta(2, 2) and for $\Sigma$ we used a LKJ(2) prior on the correlation and a Student(3,0,10) on the variances (see Stan Development Team. 2018). For the random effect parameters we used Exponential(2) for $\eta^2$, Exponential(0.5) for $\gamma^2$, and Normal(0, 2.5) for $\sigma^2$.
     
 ### Fitting the model to data
 
@@ -204,7 +204,7 @@ library(loo)
 # Extract pointwise log-likelihood and compute LOO
 log_lik <- extract_log_lik(fit, merge_chains = FALSE)
 
-r_eff <- relative_eff(exp(log_lik)) 
+r_eff <- relative_eff(exp(log_lik))
 
 loo_1 <- loo(log_lik, r_eff = r_eff, cores = 2)
 print(loo_1)
@@ -233,11 +233,11 @@ library(coda)
 nf = layout(matrix(c(1,2,3,4,0,0),3,2,byrow=TRUE), widths=c(1,1), heights=c(1,1,0.1))
 #layout.show(nf)
 op <- par( mar = c(3, 3, 2, 2) + 0.1, las = 1, bty = "n", cex = 1)
-plot(fd , mean_b[seq(1, (ns*2),by=2),1], pch = 19, col=rgb(0,0,0, 0.4), 
+plot(fd , mean_b[seq(1, (ns*2),by=2),1], pch = 19, col=rgb(0,0,0, 0.4),
      ylab = "", xlab = "", main = "")
 lines(fd, mean_z[1,1] + mean_z[3,1]*TT[,2], lwd = 3)
 for(i in 1:nsims) z1[i,] <- zs$z[i,1] + zs$z[i,2]*xp
-ci1 <- HPDinterval(as.mcmc(z1)) 
+ci1 <- HPDinterval(as.mcmc(z1))
 lines(0:100, ci1[,1])
 lines(0:100, ci1[,2])
 
@@ -245,7 +245,7 @@ plot(fd, mean_b[seq(2, (ns*2)+1 ,by=2),1], pch = 19, col=rgb(0,0,0, 0.4),
      ylab = "", xlab = "", main = "")
 lines(fd, mean_z[2,1] + mean_z[4,1]*TT[,2], lwd = 3)
 for(i in 1:nsims) z2[i,] <- zs$z[i,4] + zs$z[i,5]*xp
-ci2 <- HPDinterval(as.mcmc(z2)) 
+ci2 <- HPDinterval(as.mcmc(z2))
 lines(0:100, ci2[,1])
 lines(0:100, ci2[,2])
 
@@ -254,7 +254,7 @@ plot(bs, mean_b[seq(1, (ns*2),by=2),1], pch = 19, col=rgb(0,0,0, 0.4),
      ylab = "", xlab = "", main = "")
 lines(bs, mean_z[1,1] + mean_z[5,1]*TT[,3], lwd = 3)
 for(i in 1:nsims) z3[i,] <- zs$z[i,1] + zs$z[i,3]*xg
-ci3 <- HPDinterval(as.mcmc(z3)) 
+ci3 <- HPDinterval(as.mcmc(z3))
 lines(seq(min(bs), max(bs), length.out = 100), ci3[,1])
 lines(seq(min(bs), max(bs), length.out = 100), ci3[,2])
 
@@ -263,14 +263,14 @@ plot(bs, mean_b[seq(2, (ns*2)+1 ,by=2),1], pch = 19, col=rgb(0,0,0, 0.4),
      ylab = "", xlab = "",  main = "")
 
 for(i in 1:nsims) z4[i,] <- zs$z[i,4] + zs$z[i,6]*xg
-ci4 <- HPDinterval(as.mcmc(z4)) 
+ci4 <- HPDinterval(as.mcmc(z4))
 lines(seq(min(bs), max(bs), length.out = 100), ci4[,1])
 lines(seq(min(bs), max(bs), length.out = 100), ci4[,2])
 
 #curve(mean_z[2,1] + mean_z[6,1]*x, add = TRUE, lwd = 3)
-#mtext("log body mass", 
+#mtext("log body mass",
 #      side = 3, line = -31.5, outer = TRUE, cex=1.2)
-#mtext("frugivory", 
+#mtext("frugivory",
 #      side = 3, line = -17.5, outer = TRUE, cex=1.2)
 #mtext("intercept", side = 2, line = -1, las = 0, outer = TRUE, cex=1.2)
 par(op)
