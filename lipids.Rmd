@@ -2,7 +2,7 @@
 title: "lipids"
 author: "jmm"
 date: "8/19/2019"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -24,7 +24,7 @@ $$
 
 where $y_{i,j,k}$ is the observed number of visits of bird genus $i$ to plant genus $j$ on site $k$, and $\epsilon_j$ and $\nu_k$ are plant and site random effects.
 
-We modelled these intercept and slopes as a function of two traits (1) proportion of fruits in their diet and (2) log-transformed body size. To control for phylogenetic relationship in the responses of the birds to lipid content, we included in the model phylogenetic relationships among the bird genera. 
+We modelled these intercept and slopes as a function of two traits: (1) proportion of fruits in their diet and (2) log-transformed body size. To control for phylogenetic relationship in the responses of the birds to lipid content, we included in the model phylogenetic relationships among the bird genera. 
 
 The genus-specific parameters are combined into a matrix $\mathbf{\Theta}$ that has as many rows as genera and as many columns as regression parameters (two in our case). To determine the way in which genus respond to environmental factors depend on their traits and phylogenetic relationships, we vectorize the matrix $\mathbf{\Theta}$ to  $\mathbf{\theta} = \text{vec}(\mathbf{\Theta})$, and model it using a multivariate normal distribution as
 
