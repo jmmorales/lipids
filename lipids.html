@@ -331,6 +331,87 @@ pr_dat &lt;- list(N = N,
 
 fit &lt;- stan(file = 'prspgpp.stan', data = pr_dat,
             iter = 10000, thin = 10, chains = 3)</code></pre>
+<!-- ### Plots and other stuff -->
+<!-- ```{r, echo=FALSE} -->
+<!-- # load results -->
+<!-- load("~/Downloads/fit_nb.RData") -->
+<!-- fit = fit_nb -->
+<!-- rm(fit_nb) -->
+<!-- ``` -->
+<!-- Check convergence and number of effective MCMC samples -->
+<!-- ```{r} -->
+<!-- library(rstan) -->
+<!-- fit_summary <- summary(fit)$summary -->
+<!-- # check R_hat -->
+<!-- hist(fit_summary[,10], 100) -->
+<!-- # check n_eff -->
+<!-- hist(fit_summary[,9], 100) -->
+<!-- ``` -->
+<!-- Leave one out CV -->
+<!-- ```{r} -->
+<!-- library(loo) -->
+<!-- # Extract pointwise log-likelihood and compute LOO -->
+<!-- log_lik <- extract_log_lik(fit, merge_chains = FALSE) -->
+<!-- r_eff <- relative_eff(exp(log_lik))  -->
+<!-- loo_1 <- loo(log_lik, r_eff = r_eff, cores = 2) -->
+<!-- print(loo_1) -->
+<!-- ``` -->
+<!-- Plot of regression coefficients against degree of frugivory and body size -->
+<!-- ```{r} -->
+<!-- fit_summary <- summary(fit)$summary -->
+<!-- mean_b <- fit_summary[grepl("b_m", rownames(fit_summary)),] -->
+<!-- mean_z <- fit_summary[grepl("Z", rownames(fit_summary)),] -->
+<!-- zs <- extract(fit, pars = "z") -->
+<!-- nsims <- 1500 -->
+<!-- xp <- seq(min(TT[,2]), max(TT[,2]), length.out = 101) -->
+<!-- xg <- seq(min(TT[,3]), max(TT[,3]), length.out = 100) -->
+<!-- z1 <- matrix(NA, nsims, length(xp)) -->
+<!-- z2 <- matrix(NA, nsims, length(xp)) -->
+<!-- z3 <- matrix(NA, nsims, length(xg)) -->
+<!-- z4 <- matrix(NA, nsims, length(xg)) -->
+<!-- library(coda) -->
+<!-- #tiff(filename="zetas.tif", res=300, unit="cm", height=17, width=17) -->
+<!-- nf = layout(matrix(c(1,2,3,4,0,0),3,2,byrow=TRUE), widths=c(1,1), heights=c(1,1,0.1)) -->
+<!-- #layout.show(nf) -->
+<!-- op <- par( mar = c(3, 3, 2, 2) + 0.1, las = 1, bty = "n", cex = 1) -->
+<!-- plot(fd , mean_b[seq(1, (ns*2),by=2),1], pch = 19, col=rgb(0,0,0, 0.4),  -->
+<!--      ylab = "", xlab = "", main = "") -->
+<!-- lines(fd, mean_z[1,1] + mean_z[3,1]*TT[,2], lwd = 3) -->
+<!-- for(i in 1:nsims) z1[i,] <- zs$z[i,1] + zs$z[i,2]*xp -->
+<!-- ci1 <- HPDinterval(as.mcmc(z1))  -->
+<!-- lines(0:100, ci1[,1]) -->
+<!-- lines(0:100, ci1[,2]) -->
+<!-- plot(fd, mean_b[seq(2, (ns*2)+1 ,by=2),1], pch = 19, col=rgb(0,0,0, 0.4), -->
+<!--      ylab = "", xlab = "", main = "") -->
+<!-- lines(fd, mean_z[2,1] + mean_z[4,1]*TT[,2], lwd = 3) -->
+<!-- for(i in 1:nsims) z2[i,] <- zs$z[i,4] + zs$z[i,5]*xp -->
+<!-- ci2 <- HPDinterval(as.mcmc(z2))  -->
+<!-- lines(0:100, ci2[,1]) -->
+<!-- lines(0:100, ci2[,2]) -->
+<!-- #for(i in 1:100) lines(fd, zs$z[i,4] + zs$z[i,5]*TT[,2], col=rgb(0,0,0, 0.2) ) -->
+<!-- plot(bs, mean_b[seq(1, (ns*2),by=2),1], pch = 19, col=rgb(0,0,0, 0.4), -->
+<!--      ylab = "", xlab = "", main = "") -->
+<!-- lines(bs, mean_z[1,1] + mean_z[5,1]*TT[,3], lwd = 3) -->
+<!-- for(i in 1:nsims) z3[i,] <- zs$z[i,1] + zs$z[i,3]*xg -->
+<!-- ci3 <- HPDinterval(as.mcmc(z3))  -->
+<!-- lines(seq(min(bs), max(bs), length.out = 100), ci3[,1]) -->
+<!-- lines(seq(min(bs), max(bs), length.out = 100), ci3[,2]) -->
+<!-- plot(bs, mean_b[seq(2, (ns*2)+1 ,by=2),1], pch = 19, col=rgb(0,0,0, 0.4), -->
+<!--      ylab = "", xlab = "",  main = "") -->
+<!-- for(i in 1:nsims) z4[i,] <- zs$z[i,4] + zs$z[i,6]*xg -->
+<!-- ci4 <- HPDinterval(as.mcmc(z4))  -->
+<!-- lines(seq(min(bs), max(bs), length.out = 100), ci4[,1]) -->
+<!-- lines(seq(min(bs), max(bs), length.out = 100), ci4[,2]) -->
+<!-- #curve(mean_z[2,1] + mean_z[6,1]*x, add = TRUE, lwd = 3) -->
+<!-- #mtext("log body mass",  -->
+<!-- #      side = 3, line = -31.5, outer = TRUE, cex=1.2) -->
+<!-- #mtext("frugivory",  -->
+<!-- #      side = 3, line = -17.5, outer = TRUE, cex=1.2) -->
+<!-- #mtext("intercept", side = 2, line = -1, las = 0, outer = TRUE, cex=1.2) -->
+<!-- par(op) -->
+<!-- par(mfrow=c(1,1)) -->
+<!-- # dev.off() -->
+<!-- ``` -->
 </div>
 </div>
 
