@@ -163,3 +163,5 @@ fit <- stan(model_code = stanmcode,
             thin = 1, 
             sample_file = 'lipidsres.csv',
             verbose = FALSE)
+
+save(fit, file = "lipfit.RData")
