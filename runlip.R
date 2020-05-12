@@ -32,16 +32,6 @@ dat <- list(N = 2309,
 
 stanmcode <- "
 functions { 
-  
-  /* compute the kronecker product
-  * Copied from brms: Paul-Christian Bürkner (2018). 
-  * Advanced Bayesian Multilevel Modeling with the R Package brms. 
-  * The R Journal, 10(1), 395-411. <doi:10.32614/RJ-2018-017>
-  * Args: 
-    *   A,B: matrices 
-  * Returns: 
-    *   kronecker product of A and B
-  */ 
     matrix kronecker(matrix A, matrix B) { 
       matrix[rows(A)*rows(B), cols(A)*cols(B)] kron; 
       for (i in 1:cols(A)) { 
