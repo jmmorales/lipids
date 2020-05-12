@@ -1,6 +1,6 @@
-install.packages("rstan", repos = "http://cran.rstudio.com/")
+#install.packages("rstan", repos = "http://cran.rstudio.com/")
 
-library("rstan") # observe startup messages
+library(rstan) # observe startup messages
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 
