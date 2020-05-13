@@ -145,6 +145,16 @@ model {
 "
 
 
+fit <- stan(file='stancode.stan', data = dat, iter = 10, chains = 1)
+
+
+
+, 
+            thin = 1, 
+            sample_file = 'lipidsres.csv',
+            verbose = FALSE)
+
+
 fit <- stan(model_code = stanmcode, 
             model_name = "lipids",
             data = dat, 
