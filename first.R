@@ -1,3 +1,5 @@
 library(rstan)
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
+fit <- stan(file='stancode.stan', data = dat, iter = 10, chains = 1)
+save(fit, file="fit.RData")
