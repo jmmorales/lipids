@@ -72,6 +72,7 @@ parameters {
   real<lower=0> delta;
   real<lower=0> deltap;
   real<lower=0> phi;
+  real<lower=0,upper=1> theta;
 }
 
 transformed parameters { 
@@ -116,6 +117,6 @@ model {
   
   Y ~ poisson_log(mu);
   Y ~ neg_binomial_2(exp(mu), phi);
-  target += log_sum_exp(log(0.5) +  beta_lpdf(rho|1, 100), log(0.5) +  beta_lpdf(rho|2, 2));
+  target += log_sum_exp(log(theta) +  beta_lpdf(rho|1, 100), log(1-theta) +  beta_lpdf(rho|2, 2));
   }
 }

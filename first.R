@@ -28,3 +28,5 @@ dat <- list(N = 2309,
             ones=numeric(155)+1)
 fit <- stan(file='stancode.stan', data = dat, iter = 10, chains = 1)
 save(fit, file="fit.RData")
+
+system(mutt -s “Master, this is an email from HAL 9000, your commands have been completed” pajarom@gmail.com < ~/R/output.txt)

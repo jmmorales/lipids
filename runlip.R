@@ -28,7 +28,10 @@ dat <- list(N = 2309,
             N_1=70,
             N_2=83,
             DistP=DistP, 
-            ones=numeric(155)+1);
+            ones=numeric(155)+1)
+
+
+;
 
 stanmcode <- "
 functions { 
