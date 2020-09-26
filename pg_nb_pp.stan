@@ -115,7 +115,7 @@ model {
      mu[n] = X[n,1] * b_m[jj[n],1] + X[n,2] * b_m[jj[n],2] + r_1_1[J_1[n]] + r_1_2[J_2[n]];
   }
   
-  Y ~ poisson_log(mu);
+  // Y ~ poisson_log(mu);
   Y ~ neg_binomial_2(exp(mu), phi);
   }
 }
